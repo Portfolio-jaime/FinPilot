@@ -1,0 +1,10 @@
+{
+  "extends": "@finpilot/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@finpilot/types": ["../../packages/types/src"],
+      "@finpilot/simulator": ["../../packages/simulator/src"]
+    }
+  },
+  "include": ["src", "test"]
+}

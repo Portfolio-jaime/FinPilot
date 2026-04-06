@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  passwordHash  String
+  name          String
+  country       String          @default("CO")
+  createdAt     DateTime        @default(now())
+  wallets       Wallet[]
+  plan          InvestmentPlan?
+  refreshTokens RefreshToken[]
+}
+
+model Wallet {
+  id           String        @id @default(cuid())
+  currency     String
+  balance      Decimal       @db.Decimal(18, 2)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, currency])
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  type         TxType
+  amount       Decimal  @db.Decimal(18, 2)
+  currency     String
+  note         String?
+  exchangeRate Decimal? @db.Decimal(10, 4)
+  walletId     String
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+}
+
+enum TxType {
+  DEPOSIT
+  WITHDRAWAL
+  CONVERT
+  INVEST
+}
+
+model InvestmentPlan {
+  id                  String              @id @default(cuid())
+  monthlyContribution Decimal             @db.Decimal(18, 2)
+  investThresholdUsd  Decimal             @db.Decimal(18, 2) @default(400)
+  convertThresholdCop Decimal             @db.Decimal(18, 2) @default(150000)
+  etfAllocation       Json
+  userId              String              @unique
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots           PortfolioSnapshot[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+model PortfolioSnapshot {
+  id            String         @id @default(cuid())
+  copBalance    Decimal        @db.Decimal(18, 2)
+  usdBalance    Decimal        @db.Decimal(18, 2)
+  totalValueUsd Decimal        @db.Decimal(18, 2)
+  planId        String
+  plan          InvestmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  takenAt       DateTime       @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
